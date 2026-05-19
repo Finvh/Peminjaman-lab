@@ -10,9 +10,10 @@ return new class extends Migration {
      */
     public function up(): void
     {
-        Schema::create('peminjamans', function (Blueprint $table) {
+        Schema::create('peminjaman', function (Blueprint $table) {
             $table->id();
             $table->foreignId('id_user')->constrained('users')->onDelete('cascade');
+            $table->enum('status', ['pending', 'disetujui', 'dipinjam', 'dikembalikan', 'ditolak'])->default('pending');
             $table->date('tggl_pinjm');
             $table->date('tggl_kembali')->nullable();
             $table->timestamps();
