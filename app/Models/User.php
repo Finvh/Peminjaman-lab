@@ -4,30 +4,27 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Notifications\Notifiable;
 
 class User extends Authenticatable
 {
-    use HasFactory;
+    use HasFactory, Notifiable;
 
     protected $fillable = [
-    'name',
-    'username', // Pastikan ini ada
-    'kelas',
-    'email',    // Pastikan ini juga ada!
-    'password',
-];
+       'name', 'username', 'email', 'password', 'kelas', 'role', 'last_login', 'last_login_ip'
+    ];
 
     protected $hidden = [
         'password',
     ];
 
-    public function peminjaman()
-    {
-        return $this->hasMany(Peminjaman::class, 'id_user');
-    }
+    protected $casts = [
+        'last_login' => 'datetime',
+    ];
 
-    public function isAdmin()
+    // Relasi ke login histories
+    public function loginHistories()
     {
-        return $this->role === 'admin';
+        return $this->hasMany(LoginHistory::class)->orderBy('login_at', 'desc');
     }
 }

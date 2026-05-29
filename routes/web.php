@@ -5,6 +5,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\AdminController;
+use App\Http\Controllers\Admin\AdminUserController;
 
 // Halaman Landing
 Route::get('/', function () {
@@ -29,9 +30,7 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
     Route::get('/dashboard', [AdminController::class, 'dashboard'])->name('dashboard');
 
     // User Management
-    Route::get('/users', [AdminController::class, 'users'])->name('users');
-    Route::post('/users', [AdminController::class, 'storeUser'])->name('users.store');
-    Route::delete('/users/{id}', [AdminController::class, 'deleteUser'])->name('users.delete');
+   
 
     // Barang Management
     Route::get('/barang', [AdminController::class, 'barang'])->name('barang');
@@ -53,4 +52,13 @@ Route::middleware('auth')->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
 
+
+
+
+
+Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () {
+    Route::get('/users', [AdminUserController::class, 'index'])->name('users');
+    Route::post('/users/store', [AdminUserController::class, 'store'])->name('users.store');
+    Route::delete('/users/delete/{id}', [AdminUserController::class, 'destroy'])->name('users.delete');
+});
 require __DIR__.'/auth.php';

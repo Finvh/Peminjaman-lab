@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Models\LoginHistory;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -71,3 +72,17 @@ class AuthController extends Controller
         return redirect('/');
     }
 }
+
+    // Update last_login di user
+    $user->update([
+        'last_login' => now(),
+        'last_login_ip' => $request->ip(),
+    ]);
+    
+    // Simpan ke riwayat login
+    LoginHistory::create([
+        'user_id' => $user->id,
+        'ip_address' => $request->ip(),
+        'user_agent' => $request->userAgent(),
+        'login_at' => now(),
+    ]);

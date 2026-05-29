@@ -1,85 +1,58 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Admin;
 
-use App\Models\Barang;
-use App\Models\Peminjaman;
-use App\Models\DetailPeminjaman;
+use App\Http\Controllers\Controller;
+use App\Models\User;
+use App\Models\LoginHistory;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 
-class UserController extends Controller
+class AdminUserController extends Controller
 {
-    public function dashboard()
+    // Menampilkan daftar user
+    public function index()
     {
-        $userId = Auth::id();
-
-        $peminjaman = Peminjaman::with('detailPeminjaman.barang')
-            ->where('id_user', $userId)
-            ->orderBy('created_at', 'desc')
-            ->get();
-
-        return view('user.dashboard', compact('peminjaman'));
+        $users = User::with('loginHistories')->orderBy('created_at', 'desc')->get();
+        return view('admin.users', compact('users'));
     }
 
-    public function barang()
-    {
-        $barang = Barang::all();
-        return view('user.barang', compact('barang'));
-    }
-
-    public function createBooking()
-    {
-        $barang = Barang::all();
-        return view('user.booking', compact('barang'));
-    }
-
-    public function storeBooking(Request $request)
+    // Menambah user baru
+    public function store(Request $request)
     {
         $request->validate([
-            'barang_id' => 'required|array',
-            'barang_id.*' => 'exists:barang,id',
-            'qty' => 'required|array',
-            'qty.*' => 'integer|min:1',
-            'tggl_pinjm' => 'required|date|after_or_equal:today',
+            'username' => 'required|unique:users,username',
+            'password' => 'required|min:6',
+            'kelas' => 'nullable|string',
+            'role' => 'required|in:admin,user',
         ]);
 
-        DB::beginTransaction();
+        User::create([
+            'username' => $request->username,
+            'password' => Hash::make($request->password),
+            'kelas' => $request->kelas,
+            'role' => $request->role,
+        ]);
 
-        try {
-            // Create peminjaman
-            $peminjaman = Peminjaman::create([
-                'id_user' => Auth::id(),
-                'tggl_pinjm' => $request->tggl_pinjm,
-                'attribute' => 'pending',
-            ]);
+        return redirect()->route('admin.users')->with('success', 'User berhasil ditambahkan!');
+    }
 
-            // Create detail peminjaman
-            foreach ($request->barang_id as $index => $barangId) {
-                $barang = Barang::find($barangId);
-
-                if ($barang->jumlah_barang < $request->qty[$index]) {
-                    throw new \Exception("Stok {$barang->nama_barang} tidak mencukupi");
-                }
-
-                // Reduce stock
-                $barang->decrement('jumlah_barang', $request->qty[$index]);
-
-                DetailPeminjaman::create([
-                    'id_peminjaman' => $peminjaman->id,
-                    'id_barang' => $barangId,
-                    'qty' => $request->qty[$index],
-                    'status_peminjaman' => 'dipinjam',
-                ]);
-            }
-
-            DB::commit();
-            return redirect()->route('user.dashboard')->with('success', 'Peminjaman berhasil diajukan!');
-
-        } catch (\Exception $e) {
-            DB::rollBack();
-            return back()->with('error', $e->getMessage());
+    // Menghapus user
+    public function destroy($id)
+    {
+        $user = User::findOrFail($id);
+        
+        // Cegah menghapus admin terakhir atau diri sendiri
+        if ($user->role == 'admin' && User::where('role', 'admin')->count() <= 1) {
+            return redirect()->route('admin.users')->with('error', 'Tidak bisa menghapus admin terakhir!');
         }
+        
+        if ($user->id == auth()->id()) {
+            return redirect()->route('admin.users')->with('error', 'Tidak bisa menghapus akun sendiri!');
+        }
+        
+        $user->delete();
+        
+        return redirect()->route('admin.users')->with('success', 'User berhasil dihapus!');
     }
 }
